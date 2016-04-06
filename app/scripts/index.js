@@ -39,6 +39,10 @@ function initDropArea(droptarget) {
 }
 
 var imageListManager = {
+  zoomTo:function(ctx,percentage){
+    var img = $("img", ctx);
+    img.width(img.width()*percentage);
+  },
   zoomin: function(ctx) {
     var img = $("img", ctx);
     img.width(img.width() + 10);
@@ -51,24 +55,28 @@ var imageListManager = {
   list: [],
   init: function() {
     var that = this;
+     var left = $(".leftImg", that.dom);
+      var right = $(".rightImg", that.dom);
+      var parent=$(that.dom);
     $(".seperator", that.dom).on("mousedown", function(e) {
       if (that.ctrldown) {
         that.doingSeperator = true;
         that.screenX = e.screenX;
+        that.leftWidth=left.width();
       }
     });
     $(that.dom).on("mousemove", function(e) {
       if (that.ctrldown && that.doingSeperator) {
         var delta = that.screenX - e.screenX;
-        var left = $(".leftImg", that.dom);
-        var right = $(".rightImg", that.dom);
-        left.width(left.width() - delta);
-        right.width(right.width() + delta);
-        that.screenX=e.screenX;
+        left.width(that.leftWidth - delta);
+        right.width(parent.width()-5-(that.leftWidth - delta));
       }
     }).
     on("mouseup", function(e) {
       that.doingSeperator = false;
+      var w=left.width();
+      var w2=right.width();
+      that.splitPos=[w,w2];
     });
     $(window).on("keydown", function() {
       if (arguments[0].keyCode == 17) {
@@ -77,7 +85,12 @@ var imageListManager = {
     }).on("keyup", function() {
       that.ctrldown = false;
     }).on("resize", function() {
-      that.render();
+      var t=that.splitPos[0]+that.splitPos[1];
+      that.render({
+        zoomPercentage:($(that.dom).width()-5)*that.splitPos[0]/t/(left.width()),
+        leftPercentage:that.splitPos[0]/t,
+        rightPercentage:that.splitPos[1]/t
+      });
     });
     $(this.dom).on("wheel", ".leftImg,.rightImg", function() {
       if (that.ctrldown) {
@@ -100,6 +113,7 @@ var imageListManager = {
       }
     }).on("mouseup", ".leftImg,.rightImg", function() {
       that.doingMargin = false;
+      that.position=[parseFloat($("img",left).css("marginLeft")),parseFloat($("img",right).css("marginLeft"))];
     });
   },
   add: function(url) {
@@ -110,7 +124,8 @@ var imageListManager = {
     }
     imageListManager.list.unshift(img);
   },
-  render: function() {
+  render: function(option) {
+    var that=this;
     var c = 0;
     var left = $(".leftImg", this.dom);
     var right = $(".rightImg", this.dom);
@@ -124,8 +139,24 @@ var imageListManager = {
     }
     var g = $(".imageView").width();
     if (c >= 2) {
-      left.width((g - 5) / 2);
-      right.width((g - 5) / 2);
+      if(option){
+        var l=(g-5)*option.leftPercentage;
+        var r=(g-5)*option.rightPercentagePercentage;
+        var ml=that.position[0]*option.zoomPercentage;
+        var mr=that.position[1]*option.zoomPercentage;
+        left.width(l);
+        right.width(r);
+        that.zoomTo(left,option.zoomPercentage);
+        that.zoomTo(right,option.zoomPercentage);
+        $("img",left).css("marginLeft",ml);
+        $("img",right).css("marginLeft",mr);
+        that.windowWidth=$(window).width();
+        that.position=[ml,mr];
+        that.splitPos=[l,r];
+      }else{
+        left.width((g - 5) / 2);
+        right.width((g - 5) / 2);
+      }
     } else if (c > 0) {
       left.width(g);
       $(".seperator", this.dom);
@@ -143,4 +174,5 @@ document.addEventListener('DOMContentLoaded', function() {
   var droptarget = document.querySelector('.dropArea');
   initDropArea(droptarget);
   imageListManager.init();
+  imageListManager.windowWidth=$(window).width();
 }, false);
