@@ -1,0 +1,44 @@
+*{
+  margin:0;
+  padding:0;
+}
+::-webkit-scrollbar {
+    width: 1px;
+}
+body,html{
+  height: 100%;
+  width:100%;
+  background-color: green;
+}
+.mainArea{
+  width:100%;
+  height: 100%;
+}
+.dropArea{
+  display: none;
+  position: fixed;
+  top:0;
+  bottom:0;
+  left:0;
+  right:0;
+  border:2px dashed red;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  font-size: 18px;
+  color: #eee;
+}
+.dragenter .dropArea,.initState .dropArea{
+  display: flex;
+}
+.imageView,.imageListManager{
+  display: none;
+}
+.imageView{
+  position: relative;
+  width: 100%;
+    height: 100%;
+}
+.imageView .leftImg{float: left;height:100%;overflow: hidden;overflow-y: scroll;}
+.imageView .rightImg{float:left;height:100%;overflow: hidden;overflow-y: scroll;}
+.imageView .seperator{float:left;width:5px;height:100%;cursor:ew-resize;}
