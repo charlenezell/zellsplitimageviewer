@@ -1,9 +1,18 @@
 {
     "name": "__MSG_appName__",
     "description": "__MSG_appDescription__",
-    "version": "2",
+    "version": "5",
     "manifest_version": 2,
     "default_locale": "en",
+    "commands": {
+        "newwindow": {
+            "suggested_key": {
+                "default": "Ctrl+Shift+1"
+            },
+            "global": true,
+            "description": "Create new window"
+        }
+    },
     "permissions": [
         "alarms",
         "app.window",

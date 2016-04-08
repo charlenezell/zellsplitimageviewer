@@ -25,16 +25,26 @@ function initDropArea(droptarget) {
     mainArea.classList.remove("dragenter"); // Unhighlight droptarget
   };
   droptarget.ondrop = function(e) {
+    var job=[];
+    imageListManager.empty();
     var files = e.dataTransfer.files; // The dropped files
+    var title=files[0].name.match(/[^\w\s.]+/);
+    if(title){
+      document.title=title[0];
+    }
     for (var i = 0; i < files.length; i++) { // Loop through them all
       var type = files[i].type;
       if (type.substring(0, 6) !== "image/") // Skip any nonimages
         continue;
-      imageListManager.add(getBlobURL(files[i]));
+      var j=$.Deferred();
+      job.push(j);
+      imageListManager.add(getBlobURL(files[i]),j);
     }
     mainArea.classList.remove("dragenter"); // Unhighlight droptarget
     imageListManager.dom.style.display = "flex";
-    imageListManager.render();
+    $.when.apply(this,job).done(function(){
+      imageListManager.render();
+    })
   }
 }
 
@@ -85,11 +95,24 @@ var imageListManager = {
     }).on("keyup", function() {
       that.ctrldown = false;
     }).on("resize", function() {
-      var t=that.splitPos[0]+that.splitPos[1];
+      var tw=$(that.dom).width()-5;
+      var olw=that.splitPos[0];
+      var orw=that.splitPos[1];
+      var lm=that.position[0];
+      var rm=that.position[1];
+      var lw=tw*olw/(olw+orw);
+      var rw=tw*orw/(olw+orw);
+      var il=$("img",left);
+      var ir=$("img",right);
+      var oliw=il.width();
+      var oriw=ir.width();
       that.render({
-        zoomPercentage:($(that.dom).width()-5)*that.splitPos[0]/t/(left.width()),
-        leftPercentage:that.splitPos[0]/t,
-        rightPercentage:that.splitPos[1]/t
+        lm:lm*(lw/olw),
+        rm:rm*(rw/orw),
+        lw:lw,
+        rw:rw,
+        liw:il.width(oliw*(lw/olw)),
+        riw:ir.width(oriw*(rw/orw))
       });
     });
     $(this.dom).on("wheel", ".leftImg,.rightImg", function() {
@@ -116,11 +139,15 @@ var imageListManager = {
       that.position=[parseFloat($("img",left).css("marginLeft")),parseFloat($("img",right).css("marginLeft"))];
     });
   },
-  add: function(url) {
+  empty:function(){
+    imageListManager.list=[];
+  },
+  add: function(url,def) {
     var img = document.createElement("img"); // Create an <img> element
     img.src = url // Use Blob URL with <img>
     img.onload = function() { // When it loads
       revokeBlobURL(this.src); // But don't leak memory!
+      def.resolve();
     }
     imageListManager.list.unshift(img);
   },
@@ -129,38 +156,32 @@ var imageListManager = {
     var c = 0;
     var left = $(".leftImg", this.dom);
     var right = $(".rightImg", this.dom);
-    if (this.list[0]) {
-      left.empty().append(this.list[0]);
-      c++;
-    }
-    if (this.list[1]) {
-      right.empty().append(this.list[1]);
-      c++;
+    var m;
+    if(this.list.length>=2){
+      if(this.list[0].width>this.list[1].width){
+        left.empty().append(this.list[0]);
+        right.empty().append(this.list[1]);
+      }else{
+        left.empty().append(this.list[1]);
+        right.empty().append(this.list[0]);
+      }
     }
     var g = $(".imageView").width();
-    if (c >= 2) {
       if(option){
-        var l=(g-5)*option.leftPercentage;
-        var r=(g-5)*option.rightPercentagePercentage;
-        var ml=that.position[0]*option.zoomPercentage;
-        var mr=that.position[1]*option.zoomPercentage;
-        left.width(l);
-        right.width(r);
-        that.zoomTo(left,option.zoomPercentage);
-        that.zoomTo(right,option.zoomPercentage);
-        $("img",left).css("marginLeft",ml);
-        $("img",right).css("marginLeft",mr);
-        that.windowWidth=$(window).width();
-        that.position=[ml,mr];
-        that.splitPos=[l,r];
+        left.width(option.lw);
+        right.width(option.rw);
+        $("img",left).css("marginLeft",option.lm).width(option.liw);
+        $("img",right).css("marginLeft",option.rm).width(option.riw);
       }else{
-        left.width((g - 5) / 2);
-        right.width((g - 5) / 2);
+        left.width((g - 5) *0.74);
+        right.width((g - 5) *0.26);
+        that.zoomTo(left,(g - 5) *0.74/1040);
+        that.zoomTo(right,(g - 5) *0.26/640);
+        $("img",left).css("marginLeft",-(1920-1040)/2*$("img",left).width()/1920);
+        $("img",right).css("marginLeft",0);
       }
-    } else if (c > 0) {
-      left.width(g);
-      $(".seperator", this.dom);
-    }
+      that.position=[parseFloat($("img",left).css("marginLeft")),parseFloat($("img",right).css("marginLeft"))];
+      that.splitPos=[left.width(),right.width()];
   }
 }
 
@@ -174,5 +195,4 @@ document.addEventListener('DOMContentLoaded', function() {
   var droptarget = document.querySelector('.dropArea');
   initDropArea(droptarget);
   imageListManager.init();
-  imageListManager.windowWidth=$(window).width();
 }, false);

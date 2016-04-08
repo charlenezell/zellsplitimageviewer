@@ -27,6 +27,8 @@ body,html{
   align-items: center;
   font-size: 18px;
   color: #eee;
+  z-index:10;
+  background-color: #8BC34A;
 }
 .dragenter .dropArea,.initState .dropArea{
   display: flex;
